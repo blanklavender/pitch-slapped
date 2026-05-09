@@ -1,0 +1,193 @@
+/* ===== PAGE CONTAINER ===== */
+.pitch-room {
+    min-height: 100vh;
+    background: #1a0000; /* base background color behind the image */
+    position: relative;
+    overflow: hidden;
+}
+
+/* ===== BACKGROUND IMAGE OVERLAY ===== */
+.bg-overlay {
+    position: fixed;
+    inset: 0;
+    background: url('../assets/shark-tank-background.png') center center / cover no-repeat;
+    opacity: 0.3; /* background dimming — increase for brighter, decrease for darker */
+    z-index: 0;
+}
+
+/* ===== TOP BANNER ===== */
+.top-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px; /* banner height — lamps hang from the bottom of this */
+    background: linear-gradient(to bottom, #3e1318, #5d292c); /* top to bottom — dark to lighter */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4;
+}
+
+/* ===== TIMER ===== */
+.timer {
+    color: #fff;
+    font-size: 1.6rem; /* timer font size */
+    font-weight: bold;
+    letter-spacing: 4px;
+}
+
+/* ===== JUDGES CONTAINER ===== */
+.judges {
+    display: flex;
+    justify-content: space-evenly; /* equally space out the judge stations */
+    padding-top: 60px; /* matches banner height so judges start below it */
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1500px; /* max spread of the judges — adjust to widen/narrow */
+    margin: 0 auto;
+}
+
+/* ===== INDIVIDUAL JUDGE STATION ===== */
+.judge-station {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+/* ===== SPOTLIGHT IMAGE ===== */
+.spotlight-img {
+    width: 200px; /* spotlight beam width */
+    position: absolute;
+    top: 0px; /* position from top of judge-station */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 1; /* spotlight beam opacity */
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ===== SPOTLIGHT GLOW (yellow halo behind avatar) ===== */
+.spotlight-glow {
+    position: absolute;
+    top: 150px; /* push glow down to sit behind the avatar */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px; /* glow diameter — horizontal */
+    height: 180px; /* glow diameter — vertical */
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 245, 180, 0.3) 0%, transparent 70%); /* yellow spotlight color and intensity */
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ===== JUDGE AVATAR ===== */
+.judge-avatar-wrapper {
+    margin-top: 18em; /* gap between spotlight/lamp and the avatar */
+    width: 220px; /* outer circle size — controls how much padding around the image */
+    height: 220px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08); /* subtle background fill inside the circle */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.judge-avatar {
+    width: 190px; /* image size inside the circle — smaller than wrapper to avoid cropping */
+    height: 190px;
+    border-radius: 50%;
+    object-fit: contain; /* contain ensures nothing gets cropped */
+}
+
+/* ===== RUNNING SUMMARY BOX ===== */
+.summary-box {
+    position: fixed;
+    top: calc(60px + 5em); /* banner height (60px) + 5em gap below it */
+    right: 20px; /* distance from right edge */
+    width: 280px; /* summary box width */
+    background: rgba(0, 0, 0, 0.6); /* dark translucent background */
+    border: 1px solid #7a2e36; /* border color */
+    box-shadow: 0 0 14px rgba(93, 41, 44, 0.6); /* glow intensity */
+    border-radius: 8px;
+    color: #fff;
+    overflow: hidden;
+    z-index: 3;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.summary-header span {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+/* ===== SUMMARY COLLAPSE ARROW ===== */
+.summary-arrow {
+    font-size: 1.2rem;
+    transition: transform 0.2s;
+}
+
+.summary-arrow.open {
+    transform: rotate(180deg);
+}
+
+/* ===== SUMMARY CONTENT (collapsible) ===== */
+.summary-content {
+    padding: 0 16px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #ddd;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.summary-content.open {
+    max-height: 200px; /* max expanded height of the summary content */
+    padding: 0 16px 14px;
+}
+
+/* ===== END SESSION BUTTON ===== */
+.end-btn {
+    position: fixed;
+    bottom: 40px; /* distance from bottom edge */
+    right: 40px; /* distance from right edge */
+    background: #c62828; /* button background */
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    z-index: 3;
+}
+
+.end-btn:hover {
+    background: #d32f2f;
+}
+
+/* ===== PLACEHOLDER TEXT ===== */
+.placeholder-text {
+    position: fixed;
+    bottom: 100px; /* distance from bottom edge */
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 1rem;
+    opacity: 0.8; /* text opacity */
+    white-space: nowrap;
+    z-index: 2;
+}
