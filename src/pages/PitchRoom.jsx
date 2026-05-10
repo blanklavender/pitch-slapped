@@ -5,11 +5,51 @@ import judge2 from '../assets/judge2.png'
 import judge3 from '../assets/judge3.png'
 import spotlightImg from '../assets/spotlight.png'
 import './PitchRoom.css'
+import { useScribe } from "@elevenlabs/react";
 
 function PitchRoom() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(0)
   const [summaryOpen, setSummaryOpen] = useState(false)
+
+  const scribe = useScribe({
+    modelId: "scribe_v2_realtime",
+    onPartialTranscript: (data) => {
+      console.log("Partial:", data.text);
+    },
+    onCommittedTranscript: (data) => {
+      console.log("Committed:", data.text);
+    },
+    onCommittedTranscriptWithTimestamps: (data) => {
+      console.log("Committed with timestamps:", data.text);
+      console.log("Timestamps:", data.words);
+    },
+  }); 
+
+  const fetchTokenFromServer = async () => {
+  const response = await fetch("http://localhost:3001/scribe-token");
+  const data = await response.json();
+  return data.token;
+  };
+
+  const handleStart = async () => {
+  try {
+    const token = await fetchTokenFromServer();
+    console.log("Token received:", token);
+    
+    await scribe.connect({
+      token,
+      microphone: {
+        echoCancellation: true,
+        noiseSuppression: true,
+      },
+    });
+    
+    console.log("Connected!");
+  } catch (error) {
+    console.error("Error starting:", error);
+  }
+};    
 
   useEffect(() => {
     const interval = setInterval(() => setSeconds(s => s + 1), 1000)
@@ -52,6 +92,21 @@ function PitchRoom() {
       </div>
 
       <p className="placeholder-text">Start speaking to get your evaluations</p>
+      
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <button onClick={handleStart} disabled={scribe.isConnected}>
+          Start Recording
+        </button>
+        <button onClick={scribe.disconnect} disabled={!scribe.isConnected}>
+          Stop
+        </button>
+        {scribe.partialTranscript && <p>Live: {scribe.partialTranscript}</p>}
+        <div>
+          {scribe.committedTranscripts.map((t) => (
+            <p key={t.id}>{t.text}</p>
+          ))}
+        </div>
+      </div>
 
       <button className="end-btn" onClick={() => navigate('/')}>
         End Session

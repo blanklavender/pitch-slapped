@@ -1,16 +1,49 @@
-# React + Vite
+# PitchSlapped -- AI Shark Tank
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered pitch practice platform where users pitch their startup ideas to a panel of AI investor personas. Claude plays multiple investor roles (skeptical VC, impact investor, technical founder) and grills you with tough questions -- just like a real Shark Tank. The AI remembers your previous pitches using Backboard, so it can track how your idea evolves over time.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend:** React + Vite
+- **Backend:** Express (Node.js)
+- **AI:** Claude API (multi-turn conversations + investor personas)
+- **Memory:** Backboard (persistent pitch history)
+- **Speech-to-Text:** ElevenLabs
+- **Deployment:** Vultr
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js (v18 or higher)
+- npm
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Clone the repo:**
+   ```bash
+   git clone <repo-url>
+   cd pitch-slapped
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Create a `.env` file** in the project root:
+   ```
+   ELEVENLABS_API_KEY=your_elevenlabs_key_here
+   ```
+
+4. **Start the backend server:**
+   ```bash
+   node server/index.js
+   ```
+   This runs on `http://localhost:3001`.
+
+5. **In a separate terminal, start the frontend:**
+   ```bash
+   npm run dev
+   ```
+   This runs on `http://localhost:5173`.
+
+6. Open `http://localhost:5173` in your browser.
