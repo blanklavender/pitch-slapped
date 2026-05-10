@@ -7,13 +7,55 @@ import judge3 from '../assets/judge3.png'
 import spotlightImg from '../assets/spotlight.png'
 import './PitchRoom.css'
 
+const JUDGES = [
+  { name: 'James', image: judge1 },
+  { name: 'Vidya', image: judge2 },
+  { name: 'Layla', image: judge3 },
+]
+
+const SPEAKER_TAG_RE = /<(James|Vidya|Layla)>([\s\S]*?)<\/\1>/g
+const MS_PER_CHAR = 75 // rough TTS pace, used to schedule highlight transitions
+
+function parseSpeakerSegments(message) {
+  const segments = []
+  let match
+  SPEAKER_TAG_RE.lastIndex = 0
+  while ((match = SPEAKER_TAG_RE.exec(message)) !== null) {
+    const text = match[2].trim()
+    if (text) segments.push({ speaker: match[1], text })
+  }
+  return segments
+}
+
 function PitchRoom() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(0)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [transcript, setTranscript] = useState([])
   const [errorMessage, setErrorMessage] = useState(null)
+  const [currentSpeaker, setCurrentSpeaker] = useState(null)
   const transcriptRef = useRef(null)
+  const speakerTimersRef = useRef([])
+
+  const clearSpeakerTimers = () => {
+    speakerTimersRef.current.forEach(clearTimeout)
+    speakerTimersRef.current = []
+  }
+
+  const scheduleSpeakerHighlights = (segments) => {
+    clearSpeakerTimers()
+    let elapsed = 0
+    segments.forEach(({ speaker, text }) => {
+      const startAt = elapsed
+      speakerTimersRef.current.push(
+        setTimeout(() => setCurrentSpeaker(speaker), startAt)
+      )
+      elapsed += Math.max(text.length * MS_PER_CHAR, 400)
+    })
+    speakerTimersRef.current.push(
+      setTimeout(() => setCurrentSpeaker(null), elapsed)
+    )
+  }
 
   const conversation = useConversation({
     onConnect: () => {
@@ -24,10 +66,26 @@ function PitchRoom() {
       ])
     },
     onDisconnect: () => {
+      clearSpeakerTimers()
+      setCurrentSpeaker(null)
       setTranscript((prev) => [...prev, { role: 'system', text: 'Disconnected.' }])
     },
     onMessage: ({ message, role }) => {
       setTranscript((prev) => [...prev, { role, text: message }])
+      if (role === 'agent') {
+        const segments = parseSpeakerSegments(message)
+        if (segments.length > 0) scheduleSpeakerHighlights(segments)
+      }
+    },
+    onModeChange: ({ mode }) => {
+      if (mode === 'listening') {
+        clearSpeakerTimers()
+        setCurrentSpeaker(null)
+      }
+    },
+    onInterruption: () => {
+      clearSpeakerTimers()
+      setCurrentSpeaker(null)
     },
     onError: (message) => {
       setErrorMessage(message)
@@ -78,10 +136,10 @@ function PitchRoom() {
     }
   }, [transcript])
 
+  useEffect(() => () => clearSpeakerTimers(), [])
+
   const mins = String(Math.floor(seconds / 60)).padStart(2, '0')
   const secs = String(seconds % 60).padStart(2, '0')
-
-  const judges = [judge1, judge2, judge3]
 
   return (
     <div className="pitch-room">
@@ -92,22 +150,18 @@ function PitchRoom() {
       </div>
 
       <div className="judges">
-        {judges.map((judge, i) => (
-          <div className={`judge-station${i === 0 ? '' : ''}`} key={i}>  {/*Add ' speaking' class to test it*/}
-            <img src={spotlightImg} alt="" className="spotlight-img" />
-            <div
-              className="spotlight-glow"
-              style={
-                isConnected && mode === 'speaking'
-                  ? { background: 'radial-gradient(circle, rgba(255, 245, 180, 0.6) 0%, transparent 70%)' }
-                  : undefined
-              }
-            />
-            <div className="judge-avatar-wrapper">
-              <img src={judge} alt={`Judge ${i + 1}`} className="judge-avatar" />
+        {JUDGES.map(({ name, image }, i) => {
+          const isSpeaking = currentSpeaker === name
+          return (
+            <div className={`judge-station${isSpeaking ? ' speaking' : ''}`} key={name}>
+              <img src={spotlightImg} alt="" className="spotlight-img" />
+              <div className="spotlight-glow" />
+              <div className="judge-avatar-wrapper">
+                <img src={image} alt={`Judge ${i + 1} (${name})`} className="judge-avatar" />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="summary-box">
@@ -119,14 +173,25 @@ function PitchRoom() {
           {transcript.length === 0 ? (
             <em>Conversation will appear here once the pitch begins.</em>
           ) : (
-            transcript.map((entry, idx) => (
-              <div key={idx} style={{ marginBottom: '8px' }}>
-                <strong style={{ color: entry.role === 'user' ? '#ffd27a' : entry.role === 'agent' ? '#ff8a8a' : '#9ad' }}>
-                  {entry.role === 'user' ? 'You' : entry.role === 'agent' ? 'Investors' : 'System'}:
-                </strong>{' '}
-                {entry.text}
-              </div>
-            ))
+            transcript.map((entry, idx) => {
+              if (entry.role === 'agent') {
+                const segments = parseSpeakerSegments(entry.text)
+                if (segments.length > 0) {
+                  return segments.map((seg, segIdx) => (
+                    <div key={`${idx}-${segIdx}`} className="summary-item">
+                      <strong style={{ color: '#ff8a8a' }}>{seg.speaker}:</strong> {seg.text}
+                    </div>
+                  ))
+                }
+              }
+              const label = entry.role === 'user' ? 'You' : entry.role === 'agent' ? 'Investors' : 'System'
+              const color = entry.role === 'user' ? '#ffd27a' : entry.role === 'agent' ? '#ff8a8a' : '#9ad'
+              return (
+                <div key={idx} className="summary-item">
+                  <strong style={{ color }}>{label}:</strong> {entry.text}
+                </div>
+              )
+            })
           )}
         </div>
       </div>
@@ -134,7 +199,7 @@ function PitchRoom() {
       <p className="placeholder-text">
         {isConnecting && 'Connecting to the investors...'}
         {isConnected && mode === 'listening' && 'The investors are listening — pitch away.'}
-        {isConnected && mode === 'speaking' && 'An investor is responding...'}
+        {isConnected && mode === 'speaking' && (currentSpeaker ? `${currentSpeaker} is responding...` : 'An investor is responding...')}
         {!isConnected && !isConnecting && 'Press Start Pitch to begin your conversation.'}
       </p>
 
