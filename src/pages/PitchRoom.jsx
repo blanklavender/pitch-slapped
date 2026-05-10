@@ -14,7 +14,13 @@ const JUDGES = [
 ]
 
 const SPEAKER_TAG_RE = /<(James|Vidya|Layla)>([\s\S]*?)<\/\1>/g
+const END_MARKER_RE = /<\s*END_SESSION\s*\/?\s*>/gi
 const MS_PER_CHAR_FALLBACK = 75 // only used if alignment data is missing
+const POST_END_GRACE_MS = 600 // small buffer so the final verdict audio can flush before we disconnect
+
+function stripEndMarker(message) {
+  return message.replace(END_MARKER_RE, '').trim()
+}
 
 function parseSpeakerSegments(message) {
   const segments = []
@@ -95,6 +101,9 @@ function PitchRoom() {
   const segmentsRef = useRef([])
   const alignmentsRef = useRef([])
   const speakingStartRef = useRef(null)
+  const endRequestedRef = useRef(false)
+  const finishingRef = useRef(false)
+  const conversationRef = useRef(null)
 
   const clearSpeakerTimers = () => {
     speakerTimersRef.current.forEach(clearTimeout)
@@ -140,6 +149,17 @@ function PitchRoom() {
     }
   }
 
+  const finishSession = async () => {
+    if (finishingRef.current) return
+    finishingRef.current = true
+    try {
+      await conversationRef.current?.endSession()
+    } catch (error) {
+      console.error('Failed to end conversation:', error)
+    }
+    navigate('/pitch-report')
+  }
+
   const conversation = useConversation({
     onConnect: () => {
       setErrorMessage(null)
@@ -153,9 +173,14 @@ function PitchRoom() {
       setTranscript((prev) => [...prev, { role: 'system', text: 'Disconnected.' }])
     },
     onMessage: ({ message, role }) => {
-      setTranscript((prev) => [...prev, { role, text: message }])
+      const hasEndMarker = role === 'agent' && END_MARKER_RE.test(message)
+      const cleanText = role === 'agent' ? stripEndMarker(message) : message
+      if (cleanText) {
+        setTranscript((prev) => [...prev, { role, text: cleanText }])
+      }
       if (role === 'agent') {
-        segmentsRef.current = parseSpeakerSegments(message)
+        segmentsRef.current = parseSpeakerSegments(cleanText)
+        if (hasEndMarker) endRequestedRef.current = true
         reschedule()
       }
     },
@@ -169,6 +194,9 @@ function PitchRoom() {
         reschedule()
       } else {
         resetSpeakerState()
+        if (endRequestedRef.current && !finishingRef.current) {
+          setTimeout(() => { finishSession() }, POST_END_GRACE_MS)
+        }
       }
     },
     onInterruption: () => {
@@ -179,38 +207,36 @@ function PitchRoom() {
     },
   })
 
+  conversationRef.current = conversation
+
   const { status, mode, isMuted } = conversation
   const isConnected = status === 'connected'
   const isConnecting = status === 'connecting'
 
-  const handleStart = async () => {
-    try {
-      setErrorMessage(null)
-      await navigator.mediaDevices.getUserMedia({ audio: true })
-      const response = await fetch('http://localhost:3001/signed-url')
-      if (!response.ok) throw new Error('Failed to get signed URL')
-      const { signedUrl } = await response.json()
-      await conversation.startSession({ signedUrl })
-    } catch (error) {
-      console.error('Failed to start conversation:', error)
-      setErrorMessage(error.message || 'Failed to start conversation')
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        setErrorMessage(null)
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (cancelled) return
+        const response = await fetch('http://localhost:3001/signed-url')
+        if (cancelled) return
+        if (!response.ok) throw new Error('Failed to get signed URL')
+        const { signedUrl } = await response.json()
+        if (cancelled) return
+        await conversationRef.current.startSession({ signedUrl })
+      } catch (error) {
+        if (cancelled) return
+        console.error('Failed to start conversation:', error)
+        setErrorMessage(error.message || 'Failed to start conversation')
+      }
+    })()
+    return () => {
+      cancelled = true
+      Promise.resolve(conversationRef.current?.endSession()).catch(() => {})
     }
-  }
-
-  const handleStop = async () => {
-    try {
-      await conversation.endSession()
-    } catch (error) {
-      console.error('Failed to end conversation:', error)
-    }
-  }
-
-  const handleEndSession = async () => {
-    if (isConnected || isConnecting) {
-      await handleStop()
-    }
-    navigate('/')
-  }
+  }, [])
 
   useEffect(() => {
     const interval = setInterval(() => setSeconds((s) => s + 1), 1000)
@@ -287,36 +313,20 @@ function PitchRoom() {
         {isConnecting && 'Connecting to the investors...'}
         {isConnected && mode === 'listening' && 'The investors are listening — pitch away.'}
         {isConnected && mode === 'speaking' && (currentSpeaker ? `${currentSpeaker} is responding...` : 'An investor is responding...')}
-        {!isConnected && !isConnecting && 'Press Start Pitch to begin your conversation.'}
+        {!isConnected && !isConnecting && 'Setting up the room...'}
       </p>
 
       <div className="pitch-controls">
-        {!isConnected && !isConnecting && (
-          <button className="pitch-btn pitch-btn-start" onClick={handleStart}>
-            Start Pitch
-          </button>
-        )}
-        {(isConnected || isConnecting) && (
-          <>
-            <button
-              className="pitch-btn pitch-btn-mute"
-              onClick={() => conversation.setMuted(!isMuted)}
-              disabled={!isConnected}
-            >
-              {isMuted ? 'Unmute' : 'Mute'}
-            </button>
-            <button className="pitch-btn pitch-btn-stop" onClick={handleStop}>
-              Stop Pitch
-            </button>
-          </>
-        )}
+        <button
+          className="pitch-btn pitch-btn-mute"
+          onClick={() => conversation.setMuted(!isMuted)}
+          disabled={!isConnected}
+        >
+          {isMuted ? 'Unmute' : 'Mute'}
+        </button>
       </div>
 
       {errorMessage && <div className="pitch-error">{errorMessage}</div>}
-
-      <button className="end-btn" onClick={handleEndSession}>
-        End Session
-      </button>
     </div>
   )
 }

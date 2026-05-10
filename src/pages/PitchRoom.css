@@ -211,26 +211,6 @@
     border-bottom: none;
 }
 
-/* ===== END SESSION BUTTON ===== */
-.end-btn {
-    position: fixed;
-    bottom: 40px; /* distance from bottom edge */
-    right: 40px; /* distance from right edge */
-    background: #c62828; /* button background */
-    color: #fff;
-    border: none;
-    padding: 12px 28px;
-    font-size: 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    z-index: 3;
-}
-
-.end-btn:hover {
-    background: #d32f2f;
-}
-
 /* ===== PLACEHOLDER TEXT ===== */
 .placeholder-text {
     position: fixed;
@@ -281,22 +261,6 @@
 .pitch-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.pitch-btn-start {
-    background: #2e7d32;
-}
-
-.pitch-btn-start:hover:not(:disabled) {
-    background: #388e3c;
-}
-
-.pitch-btn-stop {
-    background: #c62828;
-}
-
-.pitch-btn-stop:hover:not(:disabled) {
-    background: #d32f2f;
 }
 
 .pitch-btn-mute {
