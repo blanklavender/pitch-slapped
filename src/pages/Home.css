@@ -64,6 +64,7 @@
     position: absolute;
     pointer-events: none;
     z-index: 0;
+    animation: float 3s ease-in-out infinite;
 }
 
 .deco-rocket {
@@ -92,4 +93,9 @@
     bottom: 10%;
     right: 12%;
     transform: rotate(-8deg);
+}
+
+@keyframes float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -12px; }
 }
