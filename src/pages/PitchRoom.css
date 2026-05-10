@@ -182,12 +182,25 @@
 /* ===== PLACEHOLDER TEXT ===== */
 .placeholder-text {
     position: fixed;
-    bottom: 100px; /* distance from bottom edge */
+    bottom: 70px;
     left: 50%;
     transform: translateX(-50%);
+    width: 60%;
     color: #fff;
     font-size: 1rem;
-    opacity: 0.8; /* text opacity */
-    white-space: nowrap;
+    opacity: 0.8;
+    text-align: center;
     z-index: 2;
+    line-height: 1.6;
+    max-height: 4.8em;
+    overflow: hidden;
+}
+
+.placeholder-text::after {
+    content: '|';
+    animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
 }

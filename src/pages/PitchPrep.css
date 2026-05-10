@@ -1,0 +1,87 @@
+.prep {
+  min-height: 100vh;
+  background: #5a0000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.prep::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, #1a0000 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.prep-content {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 0;
+}
+
+.prep-content h1 {
+  font-family: 'Mileast', serif;
+  font-size: 3.5rem;
+  font-weight: normal;
+  color: #fff;
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.prep-warning {
+  color: #ff8a80;
+  font-size: 1.15rem;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0 0 8px;
+}
+
+.prep-instruction {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  text-align: center;
+  margin: 0 0 0;
+}
+
+.prep-go-corner {
+  position: fixed;
+  bottom: 32px;
+  right: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.prep-ready {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 ;
+}
+
+.prep .go-arrow {
+  width: 110px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.prep .go-arrow:hover {
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0) scale(1.1); }
+  25% { transform: translateX(-2px) scale(1.1); }
+  75% { transform: translateX(2px) scale(1.1); }
+}

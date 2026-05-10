@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import judge1 from '../assets/judge1.png'
 import judge2 from '../assets/judge2.png'
@@ -11,14 +11,32 @@ function PitchRoom() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(0)
   const [summaryOpen, setSummaryOpen] = useState(false)
+  const [committedText, setCommittedText] = useState('')
+  const [partialText, setPartialText] = useState('Start whenever you are ready...')
+  const textRef = useRef(null)
+  const transcriptPayload = useRef([])
+
+  const displayText = committedText + (partialText ? ' ' + partialText : '')
+
+  useEffect(() => {
+    if (textRef.current) {
+      textRef.current.scrollTop = textRef.current.scrollHeight
+    }
+  }, [displayText])
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     onPartialTranscript: (data) => {
       console.log("Partial:", data.text);
+      setPartialText(data.text || '');
     },
     onCommittedTranscript: (data) => {
       console.log("Committed:", data.text);
+      if (data.text) {
+        setCommittedText(prev => prev + ' ' + data.text);
+        setPartialText('');
+        transcriptPayload.current.push({ text: data.text, timestamp: Date.now() });
+      }
     },
     onCommittedTranscriptWithTimestamps: (data) => {
       console.log("Committed with timestamps:", data.text);
@@ -91,8 +109,8 @@ function PitchRoom() {
         </div>
       </div>
 
-      <p className="placeholder-text">Start speaking to get your evaluations</p>
-      
+      <p className="placeholder-text" ref={textRef}>{displayText}</p>
+
       <div style={{ position: 'relative', zIndex: 2 }}>
         <button onClick={handleStart} disabled={scribe.isConnected}>
           Start Recording
@@ -100,15 +118,13 @@ function PitchRoom() {
         <button onClick={scribe.disconnect} disabled={!scribe.isConnected}>
           Stop
         </button>
-        {scribe.partialTranscript && <p>Live: {scribe.partialTranscript}</p>}
-        <div>
-          {scribe.committedTranscripts.map((t) => (
-            <p key={t.id}>{t.text}</p>
-          ))}
-        </div>
       </div>
 
-      <button className="end-btn" onClick={() => navigate('/')}>
+      <button className="end-btn" onClick={() => {
+        console.log('Transcript payload:', transcriptPayload.current)
+        scribe.disconnect()
+        navigate('/')
+      }}>
         End Session
       </button>
     </div>

@@ -3,6 +3,7 @@ import rocketImg from '../assets/rocket-ship-half-shadow.png'
 import boxImg from '../assets/out-of-the-box.png'
 import dartImg from '../assets/target-with-dart.png'
 import plantImg from '../assets/plant-growth-from-coin.png'
+import greenArrow from '../assets/green-arrow.png'
 import './Home.css'
 
 function Home() {
@@ -17,10 +18,13 @@ function Home() {
 
       <h1>Pitch Slapped</h1>
       <div className="enter-section">
-        <label>Enter Pitch Room</label>
-        <button className="go-btn" onClick={() => navigate('/pitch-room')}>
-          Go
-        </button>
+        <label>Get grilled by judges!</label>
+        <img
+          src={greenArrow}
+          alt="Go"
+          className="go-arrow"
+          onClick={() => navigate('/pitch-prep')}
+        />
       </div>
     </div>
   )
