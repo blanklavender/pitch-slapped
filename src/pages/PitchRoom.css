@@ -1,17 +1,16 @@
 /* ===== PAGE CONTAINER ===== */
 .pitch-room {
     min-height: 100vh;
-    background: #1a0000; /* base background color behind the image */
+    background: #1a0000;
     position: relative;
     overflow: hidden;
 }
 
-/* ===== BACKGROUND IMAGE OVERLAY ===== */
 .bg-overlay {
     position: fixed;
     inset: 0;
     background: url('../assets/shark-tank-background.png') center center / cover no-repeat;
-    opacity: 0.3; /* background dimming — increase for brighter, decrease for darker */
+    opacity: 0.3;
     z-index: 0;
 }
 
@@ -21,173 +20,344 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 60px; /* banner height — lamps hang from the bottom of this */
-    background: linear-gradient(to bottom, #3e1318, #5d292c); /* top to bottom — dark to lighter */
+    height: 60px;
+    background: linear-gradient(to bottom, #3e1318, #5d292c);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 4;
 }
 
-/* ===== TIMER ===== */
 .timer {
     color: #fff;
-    font-size: 1.6rem; /* timer font size */
+    font-size: 1.6rem;
     font-weight: bold;
     letter-spacing: 4px;
 }
 
-/* ===== JUDGES CONTAINER ===== */
-.judges {
-    display: flex;
-    justify-content: space-evenly; /* equally space out the judge stations */
-    padding-top: 60px; /* matches banner height so judges start below it */
+/* ===== STAGE LAYOUT ===== */
+.stage {
     position: relative;
     z-index: 2;
-    width: 100%;
-    max-width: 1500px; /* max spread of the judges — adjust to widen/narrow */
-    margin: 0 auto;
-}
-
-/* ===== INDIVIDUAL JUDGE STATION ===== */
-.judge-station {
+    padding: 90px 24px 32px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 28px;
+}
+
+/* ===== SPEAKER VIEW (zoom-style big tile) ===== */
+.speaker-view {
     position: relative;
-}
-
-/* ===== SPOTLIGHT IMAGE ===== */
-.spotlight-img {
-    width: 200px; /* spotlight beam width */
-    position: absolute;
-    top: 0px; /* position from top of judge-station */
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 1; /* spotlight beam opacity */
-    z-index: 1;
-    pointer-events: none;
-}
-
-/* ===== SPOTLIGHT GLOW (yellow halo behind avatar) ===== */
-.spotlight-glow {
-    position: absolute;
-    top: 150px; /* push glow down to sit behind the avatar */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 180px; /* glow diameter — horizontal */
-    height: 180px; /* glow diameter — vertical */
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 245, 180, 0.3) 0%, transparent 70%); /* yellow spotlight color and intensity */
-    z-index: 1;
-    pointer-events: none;
-}
-
-/* ===== JUDGE AVATAR ===== */
-.judge-avatar-wrapper {
-    margin-top: 18em; /* gap between spotlight/lamp and the avatar */
-    width: 220px; /* outer circle size — controls how much padding around the image */
-    height: 220px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08); /* subtle background fill inside the circle */
+    width: min(720px, 88vw);
+    aspect-ratio: 16 / 10;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.speaker-spotlight {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.speaker-glow {
+    position: absolute;
+    inset: 8% 12%;
+    border-radius: 24px;
+    background: radial-gradient(ellipse at top, rgba(255, 245, 180, 0.22) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.speaker-frame {
     position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #0d0000;
+    border: 2px solid rgba(255, 200, 130, 0.35);
+    box-shadow: 0 0 30px rgba(255, 180, 80, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.speaker-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* mirror webcam, like Zoom */
+}
+
+.speaker-shark-img {
+    max-width: 80%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.speaker-label {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.95rem;
+    padding: 4px 14px;
+    border-radius: 14px;
+    z-index: 3;
+    letter-spacing: 1px;
+}
+
+/* ===== SHARK CARD ROW ===== */
+.shark-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.shark-card-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 180px;
+}
+
+.shark-card {
+    position: relative;
+    width: 180px;
+    height: 200px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 10px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
+}
+
+.shark-glow {
+    position: absolute;
+    inset: -6px;
+    border-radius: 18px;
+    background: radial-gradient(circle, rgba(255, 215, 110, 0.45) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.shark-card.talking {
+    border-color: #ffc757;
+    box-shadow: 0 0 22px rgba(255, 199, 87, 0.6);
+}
+
+.shark-card.talking .shark-glow {
+    opacity: 1;
+}
+
+.shark-card.opted-out {
+    opacity: 0.4;
+    filter: grayscale(0.9);
+}
+
+.shark-card-avatar {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.04);
+    z-index: 1;
+}
+
+.shark-card-name {
+    margin-top: 10px;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-size: 1rem;
+    z-index: 1;
+}
+
+.shark-card-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #5a5a5a;
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
     z-index: 2;
 }
 
-.judge-avatar {
-    width: 190px; /* image size inside the circle — smaller than wrapper to avoid cropping */
-    height: 190px;
-    border-radius: 50%;
-    object-fit: contain; /* contain ensures nothing gets cropped */
+/* ===== OFFER BANNER ===== */
+.offer-banner {
+    width: 100%;
+    background: linear-gradient(to right, #1f4d2a, #2e7d32);
+    color: #fff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(46, 125, 50, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-/* ===== RUNNING SUMMARY BOX ===== */
-.summary-box {
+.offer-label {
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+.offer-text {
+    font-weight: 600;
+}
+
+/* ===== PITCH SUMMARY CARD ===== */
+.pitch-summary-card {
     position: fixed;
-    top: calc(60px + 5em); /* banner height (60px) + 5em gap below it */
-    right: 20px; /* distance from right edge */
-    width: 280px; /* summary box width */
-    background: rgba(0, 0, 0, 0.6); /* dark translucent background */
-    border: 1px solid #7a2e36; /* border color */
-    box-shadow: 0 0 14px rgba(93, 41, 44, 0.6); /* glow intensity */
-    border-radius: 8px;
+    top: calc(60px + 24px);
+    right: 20px;
+    width: 280px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid #7a2e36;
+    box-shadow: 0 0 14px rgba(93, 41, 44, 0.6);
+    border-radius: 10px;
     color: #fff;
-    overflow: hidden;
+    padding: 14px 16px;
+    z-index: 3;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.pitch-summary-title {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    color: #ffc757;
+}
+
+.pitch-summary-empty {
+    font-size: 0.85rem;
+    color: #bbb;
+    font-style: italic;
+}
+
+.pitch-summary-list {
+    list-style: disc;
+    padding-left: 18px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pitch-summary-list strong {
+    color: #ffc757;
+    margin-right: 4px;
+}
+
+/* ===== CONTROL BAR ===== */
+.control-bar {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    display: flex;
+    gap: 12px;
     z-index: 3;
 }
 
-.summary-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.summary-header span {
-    font-weight: bold;
-    font-size: 0.95rem;
-}
-
-/* ===== SUMMARY COLLAPSE ARROW ===== */
-.summary-arrow {
-    font-size: 1.2rem;
-    transition: transform 0.2s;
-}
-
-.summary-arrow.open {
-    transform: rotate(180deg);
-}
-
-/* ===== SUMMARY CONTENT (collapsible) ===== */
-.summary-content {
-    padding: 0 16px;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: #ddd;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-}
-
-.summary-content.open {
-    max-height: 200px; /* max expanded height of the summary content */
-    padding: 0 16px 14px;
-}
-
-/* ===== END SESSION BUTTON ===== */
-.end-btn {
-    position: fixed;
-    bottom: 40px; /* distance from bottom edge */
-    right: 40px; /* distance from right edge */
-    background: #c62828; /* button background */
+.control-btn {
+    background: #444;
     color: #fff;
     border: none;
-    padding: 12px 28px;
-    font-size: 1rem;
+    padding: 10px 20px;
+    font-size: 0.95rem;
     border-radius: 6px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    z-index: 3;
 }
 
-.end-btn:hover {
-    background: #d32f2f;
+.control-btn:hover { background: #555; }
+
+.control-btn.primary {
+    background: #2e7d32;
 }
 
-/* ===== PLACEHOLDER TEXT ===== */
-.placeholder-text {
+.control-btn.primary:hover { background: #388e3c; }
+
+.control-btn.danger {
+    background: #c62828;
+}
+
+.control-btn.danger:hover { background: #d32f2f; }
+
+/* ===== END MODAL ===== */
+.end-modal-backdrop {
     position: fixed;
-    bottom: 100px; /* distance from bottom edge */
-    left: 50%;
-    transform: translateX(-50%);
-    color: #fff;
-    font-size: 1rem;
-    opacity: 0.8; /* text opacity */
-    white-space: nowrap;
-    z-index: 2;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+.end-modal {
+    background: #2a0a0e;
+    border: 1px solid #7a2e36;
+    border-radius: 12px;
+    padding: 28px 36px;
+    color: #fff;
+    text-align: center;
+    max-width: 460px;
+    box-shadow: 0 0 30px rgba(255, 100, 60, 0.25);
+}
+
+.end-modal h2 {
+    margin-bottom: 12px;
+    color: #ffc757;
+    letter-spacing: 1px;
+}
+
+.end-modal p {
+    color: #ddd;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.end-modal-btn {
+    background: #2e7d32;
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+}
+
+.end-modal-btn:hover { background: #388e3c; }
