@@ -18,7 +18,7 @@ function Home() {
 
       <h1>Pitch Slapped</h1>
       <div className="enter-section">
-        <label>Get grilled by judges!</label>
+        <label>Get humbled by potential investors!</label>
         <img
           src={greenArrow}
           alt="Go"

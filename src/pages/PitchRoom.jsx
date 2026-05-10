@@ -14,7 +14,7 @@ const JUDGES = [
 ]
 
 const SPEAKER_TAG_RE = /<(James|Vidya|Layla)>([\s\S]*?)<\/\1>/g
-const MS_PER_CHAR = 75 // rough TTS pace, used to schedule highlight transitions
+const MS_PER_CHAR_FALLBACK = 75 // only used if alignment data is missing
 
 function parseSpeakerSegments(message) {
   const segments = []
@@ -27,6 +27,62 @@ function parseSpeakerSegments(message) {
   return segments
 }
 
+// Concatenate alignment chunks into one timeline of { char, absMs } where
+// absMs is the audio playback offset for that character relative to the very
+// start of the agent's spoken response.
+function buildAlignmentTimeline(alignments) {
+  const chars = []
+  let baseMs = 0
+  for (const a of alignments) {
+    const c = a.chars || []
+    const starts = a.char_start_times_ms || a.charStartTimesMs || []
+    const durs = a.char_durations_ms || a.charDurationsMs || []
+    for (let i = 0; i < c.length; i++) {
+      chars.push({ char: c[i], absMs: baseMs + (starts[i] ?? 0) })
+    }
+    if (c.length > 0) {
+      const last = c.length - 1
+      baseMs += (starts[last] ?? 0) + (durs[last] ?? 0)
+    }
+  }
+  return { chars, totalMs: baseMs }
+}
+
+// Given parsed speaker segments and the alignment timeline, return per-segment
+// { startMs, endMs } in absolute playback time. Falls back to char-count
+// estimation when the timeline doesn't yet cover a segment.
+function computeSegmentTimings(segments, timeline) {
+  const isLetter = (ch) => /[\p{L}\p{N}]/u.test(ch)
+  const result = []
+  let charIdx = 0
+  let lastEnd = 0
+  for (const seg of segments) {
+    while (charIdx < timeline.chars.length && !isLetter(timeline.chars[charIdx].char)) {
+      charIdx++
+    }
+    let startMs
+    let endMs
+    if (charIdx < timeline.chars.length) {
+      startMs = timeline.chars[charIdx].absMs
+      let consumed = 0
+      const target = seg.text.replace(/\s/g, '').length || seg.text.length
+      while (charIdx < timeline.chars.length && consumed < target) {
+        if (isLetter(timeline.chars[charIdx].char)) consumed++
+        charIdx++
+      }
+      endMs = charIdx < timeline.chars.length
+        ? timeline.chars[charIdx].absMs
+        : Math.max(timeline.totalMs, startMs + seg.text.length * MS_PER_CHAR_FALLBACK)
+    } else {
+      startMs = lastEnd
+      endMs = startMs + Math.max(seg.text.length * MS_PER_CHAR_FALLBACK, 400)
+    }
+    result.push({ ...seg, startMs, endMs })
+    lastEnd = endMs
+  }
+  return result
+}
+
 function PitchRoom() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(0)
@@ -36,25 +92,52 @@ function PitchRoom() {
   const [currentSpeaker, setCurrentSpeaker] = useState(null)
   const transcriptRef = useRef(null)
   const speakerTimersRef = useRef([])
+  const segmentsRef = useRef([])
+  const alignmentsRef = useRef([])
+  const speakingStartRef = useRef(null)
 
   const clearSpeakerTimers = () => {
     speakerTimersRef.current.forEach(clearTimeout)
     speakerTimersRef.current = []
   }
 
-  const scheduleSpeakerHighlights = (segments) => {
+  const resetSpeakerState = () => {
     clearSpeakerTimers()
-    let elapsed = 0
-    segments.forEach(({ speaker, text }) => {
-      const startAt = elapsed
+    segmentsRef.current = []
+    alignmentsRef.current = []
+    speakingStartRef.current = null
+    setCurrentSpeaker(null)
+  }
+
+  // Re-derive every speaker-highlight transition from scratch using whatever
+  // alignment chunks have arrived so far, anchored to the moment audio
+  // playback actually started (speakingStartRef). Re-runs on every new
+  // alignment so streaming chunks during long agent turns stay in sync.
+  const reschedule = () => {
+    if (speakingStartRef.current === null) return
+    const segments = segmentsRef.current
+    if (segments.length === 0) return
+
+    clearSpeakerTimers()
+    const timeline = buildAlignmentTimeline(alignmentsRef.current)
+    const timings = computeSegmentTimings(segments, timeline)
+    const elapsed = Date.now() - speakingStartRef.current
+
+    for (const t of timings) {
+      if (t.endMs <= elapsed) continue
+      const delay = Math.max(0, t.startMs - elapsed)
       speakerTimersRef.current.push(
-        setTimeout(() => setCurrentSpeaker(speaker), startAt)
+        setTimeout(() => setCurrentSpeaker(t.speaker), delay)
       )
-      elapsed += Math.max(text.length * MS_PER_CHAR, 400)
-    })
-    speakerTimersRef.current.push(
-      setTimeout(() => setCurrentSpeaker(null), elapsed)
-    )
+    }
+    const totalEnd = timings.length > 0 ? timings[timings.length - 1].endMs : 0
+    if (totalEnd > elapsed) {
+      speakerTimersRef.current.push(
+        setTimeout(() => setCurrentSpeaker(null), totalEnd - elapsed)
+      )
+    } else {
+      setCurrentSpeaker(null)
+    }
   }
 
   const conversation = useConversation({
@@ -66,26 +149,30 @@ function PitchRoom() {
       ])
     },
     onDisconnect: () => {
-      clearSpeakerTimers()
-      setCurrentSpeaker(null)
+      resetSpeakerState()
       setTranscript((prev) => [...prev, { role: 'system', text: 'Disconnected.' }])
     },
     onMessage: ({ message, role }) => {
       setTranscript((prev) => [...prev, { role, text: message }])
       if (role === 'agent') {
-        const segments = parseSpeakerSegments(message)
-        if (segments.length > 0) scheduleSpeakerHighlights(segments)
+        segmentsRef.current = parseSpeakerSegments(message)
+        reschedule()
       }
     },
+    onAudioAlignment: (alignment) => {
+      alignmentsRef.current.push(alignment)
+      reschedule()
+    },
     onModeChange: ({ mode }) => {
-      if (mode === 'listening') {
-        clearSpeakerTimers()
-        setCurrentSpeaker(null)
+      if (mode === 'speaking') {
+        speakingStartRef.current = Date.now()
+        reschedule()
+      } else {
+        resetSpeakerState()
       }
     },
     onInterruption: () => {
-      clearSpeakerTimers()
-      setCurrentSpeaker(null)
+      resetSpeakerState()
     },
     onError: (message) => {
       setErrorMessage(message)
