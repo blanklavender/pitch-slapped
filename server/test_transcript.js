@@ -54,7 +54,7 @@ ${conversationText}`;
   console.log("Sending to Gemini...\n");
   // const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" });
   const result = await genai.models.generateContent({
-        model: "gemma-3-27b-it",
+        model: "gemini-2.0-flash",
         contents: prompt,
   });
   const text = result.text;
