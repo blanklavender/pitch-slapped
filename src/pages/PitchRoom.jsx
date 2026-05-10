@@ -89,7 +89,7 @@ function PitchRoom() {
 
       <div className="judges">
         {judges.map((judge, i) => (
-          <div className={`judge-station${i === 0 ? '' : ''}`} key={i}>  {/*Add 'speaking' class to test it*/}
+          <div className={`judge-station${i === 0 ? '' : ''}`} key={i}>  {/*Add ' speaking' class to test it*/}
             <img src={spotlightImg} alt="" className="spotlight-img" />
             <div className="spotlight-glow" />
             <div className="judge-avatar-wrapper">
@@ -105,11 +105,7 @@ function PitchRoom() {
           <span className={`summary-arrow ${summaryOpen ? 'open' : ''}`}>&#9660;</span>
         </div>
         <div className={`summary-content ${summaryOpen ? 'open' : ''}`}>
-          <div className="summary-item"><strong>Product:</strong> BrewBot — an AI-powered coffee maker</div>
-          <div className="summary-item"><strong>USP:</strong> Learns your taste preferences over time</div>
-          <div className="summary-item"><strong>Market:</strong> $48B specialty coffee industry</div>
-          <div className="summary-item"><strong>Ask:</strong> $500K for 10% equity</div>
-          <div className="summary-item"><strong>Traction:</strong> 2,000 pre-orders, $180K revenue</div>
+          Pitch evaluation and key points will appear here as the session progresses.
         </div>
       </div>
 
@@ -127,7 +123,7 @@ function PitchRoom() {
       <button className="end-btn" onClick={() => {
         console.log('Transcript payload:', transcriptPayload.current)
         scribe.disconnect()
-        navigate('/pitch-report')
+        navigate('/')
       }}>
         End Session
       </button>
