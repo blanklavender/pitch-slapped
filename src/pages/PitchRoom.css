@@ -104,6 +104,18 @@
     object-fit: contain; /* contain ensures nothing gets cropped */
 }
 
+/* ===== JUDGE NAME ===== */
+.judge-name {
+    margin-top: 1.7em;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
 /* ===== JUDGE SPEAKING STATE ===== */
 .judge-station.speaking .judge-avatar-wrapper {
     transform: scale(1.1);
@@ -213,15 +225,13 @@
 
 /* ===== PLACEHOLDER TEXT ===== */
 .placeholder-text {
-    position: fixed;
-    bottom: 70px;
-    left: 50%;
-    transform: translateX(-50%);
     width: 60%;
+    margin: 9em auto 0;
     color: #fff;
     font-size: 1rem;
     opacity: 0.8;
     text-align: center;
+    position: relative;
     z-index: 2;
     line-height: 1.6;
     max-height: 4.8em;
@@ -239,12 +249,11 @@
 
 /* ===== PITCH CONTROLS ===== */
 .pitch-controls {
-    position: fixed;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
+    justify-content: center;
     gap: 12px;
+    margin-top: 3.5em;
+    position: relative;
     z-index: 3;
 }
 

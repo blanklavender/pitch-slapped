@@ -277,10 +277,28 @@ function PitchRoom() {
               <div className="judge-avatar-wrapper">
                 <img src={image} alt={`Judge ${i + 1} (${name})`} className="judge-avatar" />
               </div>
+              <span className="judge-name">{name}</span>
             </div>
           )
         })}
       </div>
+
+      <div className="pitch-controls">
+        <button
+          className="pitch-btn pitch-btn-mute"
+          onClick={() => conversation.setMuted(!isMuted)}
+          disabled={!isConnected}
+        >
+          {isMuted ? 'Unmute' : 'Mute'}
+        </button>
+      </div>
+
+      <p className="placeholder-text">
+        {isConnecting && 'Connecting to the investors...'}
+        {isConnected && mode === 'listening' && 'The investors are listening — pitch away.'}
+        {isConnected && mode === 'speaking' && (currentSpeaker ? `${currentSpeaker} is responding...` : 'An investor is responding...')}
+        {!isConnected && !isConnecting && 'Setting up the room...'}
+      </p>
 
       <div className="summary-box">
         <div className="summary-header" onClick={() => setSummaryOpen(!summaryOpen)}>
@@ -312,23 +330,6 @@ function PitchRoom() {
             })
           )}
         </div>
-      </div>
-
-      <p className="placeholder-text">
-        {isConnecting && 'Connecting to the investors...'}
-        {isConnected && mode === 'listening' && 'The investors are listening — pitch away.'}
-        {isConnected && mode === 'speaking' && (currentSpeaker ? `${currentSpeaker} is responding...` : 'An investor is responding...')}
-        {!isConnected && !isConnecting && 'Setting up the room...'}
-      </p>
-
-      <div className="pitch-controls">
-        <button
-          className="pitch-btn pitch-btn-mute"
-          onClick={() => conversation.setMuted(!isMuted)}
-          disabled={!isConnected}
-        >
-          {isMuted ? 'Unmute' : 'Mute'}
-        </button>
       </div>
 
       {errorMessage && <div className="pitch-error">{errorMessage}</div>}
