@@ -1,83 +1,232 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useConversation } from '@elevenlabs/react'
 import judge1 from '../assets/judge1.png'
 import judge2 from '../assets/judge2.png'
 import judge3 from '../assets/judge3.png'
 import spotlightImg from '../assets/spotlight.png'
 import './PitchRoom.css'
-import { useScribe } from "@elevenlabs/react";
+
+const JUDGES = [
+  { name: 'James', image: judge1 },
+  { name: 'Vidya', image: judge2 },
+  { name: 'Layla', image: judge3 },
+]
+
+const SPEAKER_TAG_RE = /<(James|Vidya|Layla)>([\s\S]*?)<\/\1>/g
+const MS_PER_CHAR_FALLBACK = 75 // only used if alignment data is missing
+
+function parseSpeakerSegments(message) {
+  const segments = []
+  let match
+  SPEAKER_TAG_RE.lastIndex = 0
+  while ((match = SPEAKER_TAG_RE.exec(message)) !== null) {
+    const text = match[2].trim()
+    if (text) segments.push({ speaker: match[1], text })
+  }
+  return segments
+}
+
+// Concatenate alignment chunks into one timeline of { char, absMs } where
+// absMs is the audio playback offset for that character relative to the very
+// start of the agent's spoken response.
+function buildAlignmentTimeline(alignments) {
+  const chars = []
+  let baseMs = 0
+  for (const a of alignments) {
+    const c = a.chars || []
+    const starts = a.char_start_times_ms || a.charStartTimesMs || []
+    const durs = a.char_durations_ms || a.charDurationsMs || []
+    for (let i = 0; i < c.length; i++) {
+      chars.push({ char: c[i], absMs: baseMs + (starts[i] ?? 0) })
+    }
+    if (c.length > 0) {
+      const last = c.length - 1
+      baseMs += (starts[last] ?? 0) + (durs[last] ?? 0)
+    }
+  }
+  return { chars, totalMs: baseMs }
+}
+
+// Given parsed speaker segments and the alignment timeline, return per-segment
+// { startMs, endMs } in absolute playback time. Falls back to char-count
+// estimation when the timeline doesn't yet cover a segment.
+function computeSegmentTimings(segments, timeline) {
+  const isLetter = (ch) => /[\p{L}\p{N}]/u.test(ch)
+  const result = []
+  let charIdx = 0
+  let lastEnd = 0
+  for (const seg of segments) {
+    while (charIdx < timeline.chars.length && !isLetter(timeline.chars[charIdx].char)) {
+      charIdx++
+    }
+    let startMs
+    let endMs
+    if (charIdx < timeline.chars.length) {
+      startMs = timeline.chars[charIdx].absMs
+      let consumed = 0
+      const target = seg.text.replace(/\s/g, '').length || seg.text.length
+      while (charIdx < timeline.chars.length && consumed < target) {
+        if (isLetter(timeline.chars[charIdx].char)) consumed++
+        charIdx++
+      }
+      endMs = charIdx < timeline.chars.length
+        ? timeline.chars[charIdx].absMs
+        : Math.max(timeline.totalMs, startMs + seg.text.length * MS_PER_CHAR_FALLBACK)
+    } else {
+      startMs = lastEnd
+      endMs = startMs + Math.max(seg.text.length * MS_PER_CHAR_FALLBACK, 400)
+    }
+    result.push({ ...seg, startMs, endMs })
+    lastEnd = endMs
+  }
+  return result
+}
 
 function PitchRoom() {
   const navigate = useNavigate()
   const [seconds, setSeconds] = useState(0)
   const [summaryOpen, setSummaryOpen] = useState(false)
-  const [committedText, setCommittedText] = useState('')
-  const [partialText, setPartialText] = useState('Start whenever you are ready...')
-  const textRef = useRef(null)
-  const transcriptPayload = useRef([])
+  const [transcript, setTranscript] = useState([])
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [currentSpeaker, setCurrentSpeaker] = useState(null)
+  const transcriptRef = useRef(null)
+  const speakerTimersRef = useRef([])
+  const segmentsRef = useRef([])
+  const alignmentsRef = useRef([])
+  const speakingStartRef = useRef(null)
 
-  const displayText = committedText + (partialText ? ' ' + partialText : '')
+  const clearSpeakerTimers = () => {
+    speakerTimersRef.current.forEach(clearTimeout)
+    speakerTimersRef.current = []
+  }
 
-  useEffect(() => {
-    if (textRef.current) {
-      textRef.current.scrollTop = textRef.current.scrollHeight
+  const resetSpeakerState = () => {
+    clearSpeakerTimers()
+    segmentsRef.current = []
+    alignmentsRef.current = []
+    speakingStartRef.current = null
+    setCurrentSpeaker(null)
+  }
+
+  // Re-derive every speaker-highlight transition from scratch using whatever
+  // alignment chunks have arrived so far, anchored to the moment audio
+  // playback actually started (speakingStartRef). Re-runs on every new
+  // alignment so streaming chunks during long agent turns stay in sync.
+  const reschedule = () => {
+    if (speakingStartRef.current === null) return
+    const segments = segmentsRef.current
+    if (segments.length === 0) return
+
+    clearSpeakerTimers()
+    const timeline = buildAlignmentTimeline(alignmentsRef.current)
+    const timings = computeSegmentTimings(segments, timeline)
+    const elapsed = Date.now() - speakingStartRef.current
+
+    for (const t of timings) {
+      if (t.endMs <= elapsed) continue
+      const delay = Math.max(0, t.startMs - elapsed)
+      speakerTimersRef.current.push(
+        setTimeout(() => setCurrentSpeaker(t.speaker), delay)
+      )
     }
-  }, [displayText])
+    const totalEnd = timings.length > 0 ? timings[timings.length - 1].endMs : 0
+    if (totalEnd > elapsed) {
+      speakerTimersRef.current.push(
+        setTimeout(() => setCurrentSpeaker(null), totalEnd - elapsed)
+      )
+    } else {
+      setCurrentSpeaker(null)
+    }
+  }
 
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    onPartialTranscript: (data) => {
-      console.log("Partial:", data.text);
-      setPartialText(data.text || '');
+  const conversation = useConversation({
+    onConnect: () => {
+      setErrorMessage(null)
+      setTranscript((prev) => [
+        ...prev,
+        { role: 'system', text: 'Connected. The investors are listening — start your pitch.' },
+      ])
     },
-    onCommittedTranscript: (data) => {
-      console.log("Committed:", data.text);
-      if (data.text) {
-        setCommittedText(prev => prev + ' ' + data.text);
-        setPartialText('');
-        transcriptPayload.current.push({ text: data.text, timestamp: Date.now() });
+    onDisconnect: () => {
+      resetSpeakerState()
+      setTranscript((prev) => [...prev, { role: 'system', text: 'Disconnected.' }])
+    },
+    onMessage: ({ message, role }) => {
+      setTranscript((prev) => [...prev, { role, text: message }])
+      if (role === 'agent') {
+        segmentsRef.current = parseSpeakerSegments(message)
+        reschedule()
       }
     },
-    onCommittedTranscriptWithTimestamps: (data) => {
-      console.log("Committed with timestamps:", data.text);
-      console.log("Timestamps:", data.words);
+    onAudioAlignment: (alignment) => {
+      alignmentsRef.current.push(alignment)
+      reschedule()
     },
-  }); 
+    onModeChange: ({ mode }) => {
+      if (mode === 'speaking') {
+        speakingStartRef.current = Date.now()
+        reschedule()
+      } else {
+        resetSpeakerState()
+      }
+    },
+    onInterruption: () => {
+      resetSpeakerState()
+    },
+    onError: (message) => {
+      setErrorMessage(message)
+    },
+  })
 
-  const fetchTokenFromServer = async () => {
-  const response = await fetch("http://localhost:3001/scribe-token");
-  const data = await response.json();
-  return data.token;
-  };
+  const { status, mode, isMuted } = conversation
+  const isConnected = status === 'connected'
+  const isConnecting = status === 'connecting'
 
   const handleStart = async () => {
-  try {
-    const token = await fetchTokenFromServer();
-    console.log("Token received:", token);
-    
-    await scribe.connect({
-      token,
-      microphone: {
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    });
-    
-    console.log("Connected!");
-  } catch (error) {
-    console.error("Error starting:", error);
+    try {
+      setErrorMessage(null)
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+      const response = await fetch('http://localhost:3001/signed-url')
+      if (!response.ok) throw new Error('Failed to get signed URL')
+      const { signedUrl } = await response.json()
+      await conversation.startSession({ signedUrl })
+    } catch (error) {
+      console.error('Failed to start conversation:', error)
+      setErrorMessage(error.message || 'Failed to start conversation')
+    }
   }
-};    
+
+  const handleStop = async () => {
+    try {
+      await conversation.endSession()
+    } catch (error) {
+      console.error('Failed to end conversation:', error)
+    }
+  }
+
+  const handleEndSession = async () => {
+    if (isConnected || isConnecting) {
+      await handleStop()
+    }
+    navigate('/')
+  }
 
   useEffect(() => {
-    const interval = setInterval(() => setSeconds(s => s + 1), 1000)
+    const interval = setInterval(() => setSeconds((s) => s + 1), 1000)
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
+    }
+  }, [transcript])
+
+  useEffect(() => () => clearSpeakerTimers(), [])
+
   const mins = String(Math.floor(seconds / 60)).padStart(2, '0')
   const secs = String(seconds % 60).padStart(2, '0')
-
-  const judges = [judge1, judge2, judge3]
 
   return (
     <div className="pitch-room">
@@ -88,43 +237,84 @@ function PitchRoom() {
       </div>
 
       <div className="judges">
-        {judges.map((judge, i) => (
-          <div className={`judge-station${i === 0 ? '' : ''}`} key={i}>  {/*Add ' speaking' class to test it*/}
-            <img src={spotlightImg} alt="" className="spotlight-img" />
-            <div className="spotlight-glow" />
-            <div className="judge-avatar-wrapper">
-              <img src={judge} alt={`Judge ${i + 1}`} className="judge-avatar" />
+        {JUDGES.map(({ name, image }, i) => {
+          const isSpeaking = currentSpeaker === name
+          return (
+            <div className={`judge-station${isSpeaking ? ' speaking' : ''}`} key={name}>
+              <img src={spotlightImg} alt="" className="spotlight-img" />
+              <div className="spotlight-glow" />
+              <div className="judge-avatar-wrapper">
+                <img src={image} alt={`Judge ${i + 1} (${name})`} className="judge-avatar" />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="summary-box">
         <div className="summary-header" onClick={() => setSummaryOpen(!summaryOpen)}>
-          <span>Running Summary</span>
+          <span>Live Transcript</span>
           <span className={`summary-arrow ${summaryOpen ? 'open' : ''}`}>&#9660;</span>
         </div>
-        <div className={`summary-content ${summaryOpen ? 'open' : ''}`}>
-          Pitch evaluation and key points will appear here as the session progresses.
+        <div className={`summary-content ${summaryOpen ? 'open' : ''}`} ref={transcriptRef}>
+          {transcript.length === 0 ? (
+            <em>Conversation will appear here once the pitch begins.</em>
+          ) : (
+            transcript.map((entry, idx) => {
+              if (entry.role === 'agent') {
+                const segments = parseSpeakerSegments(entry.text)
+                if (segments.length > 0) {
+                  return segments.map((seg, segIdx) => (
+                    <div key={`${idx}-${segIdx}`} className="summary-item">
+                      <strong style={{ color: '#ff8a8a' }}>{seg.speaker}:</strong> {seg.text}
+                    </div>
+                  ))
+                }
+              }
+              const label = entry.role === 'user' ? 'You' : entry.role === 'agent' ? 'Investors' : 'System'
+              const color = entry.role === 'user' ? '#ffd27a' : entry.role === 'agent' ? '#ff8a8a' : '#9ad'
+              return (
+                <div key={idx} className="summary-item">
+                  <strong style={{ color }}>{label}:</strong> {entry.text}
+                </div>
+              )
+            })
+          )}
         </div>
       </div>
 
-      <p className="placeholder-text" ref={textRef}>{displayText}</p>
+      <p className="placeholder-text">
+        {isConnecting && 'Connecting to the investors...'}
+        {isConnected && mode === 'listening' && 'The investors are listening — pitch away.'}
+        {isConnected && mode === 'speaking' && (currentSpeaker ? `${currentSpeaker} is responding...` : 'An investor is responding...')}
+        {!isConnected && !isConnecting && 'Press Start Pitch to begin your conversation.'}
+      </p>
 
-      <div style={{ position: 'relative', zIndex: 2 }}>
-        <button onClick={handleStart} disabled={scribe.isConnected}>
-          Start Recording
-        </button>
-        <button onClick={scribe.disconnect} disabled={!scribe.isConnected}>
-          Stop
-        </button>
+      <div className="pitch-controls">
+        {!isConnected && !isConnecting && (
+          <button className="pitch-btn pitch-btn-start" onClick={handleStart}>
+            Start Pitch
+          </button>
+        )}
+        {(isConnected || isConnecting) && (
+          <>
+            <button
+              className="pitch-btn pitch-btn-mute"
+              onClick={() => conversation.setMuted(!isMuted)}
+              disabled={!isConnected}
+            >
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+            <button className="pitch-btn pitch-btn-stop" onClick={handleStop}>
+              Stop Pitch
+            </button>
+          </>
+        )}
       </div>
 
-      <button className="end-btn" onClick={() => {
-        console.log('Transcript payload:', transcriptPayload.current)
-        scribe.disconnect()
-        navigate('/')
-      }}>
+      {errorMessage && <div className="pitch-error">{errorMessage}</div>}
+
+      <button className="end-btn" onClick={handleEndSession}>
         End Session
       </button>
     </div>

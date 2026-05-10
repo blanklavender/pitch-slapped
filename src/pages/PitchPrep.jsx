@@ -11,16 +11,16 @@ function PitchPrep() {
         <h1>Prepare Your Pitch</h1>
 
         <p className="prep-warning">
-          3 ruthless sharks are waiting on the other side.
+          Potential investors await your presentation in the Pitch Room.
           <br />
-          You get <strong>one shot</strong> to convince them your idea is worth
-          millions. No second chances, no do-overs.
+          You get <strong>one shot</strong> at convincing them your idea is worth
+          their money.
         </p>
 
         <p className="prep-instruction">
-          Step up to the mic, state your name, describe your product,
+          State your name, describe your idea and
           <br />
-          tell them what makes it special, and make your ask.
+          blow their minds! Good luck.
         </p>
 
       </div>

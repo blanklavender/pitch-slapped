@@ -256,3 +256,68 @@
 @keyframes blink {
     50% { opacity: 0; }
 }
+
+/* ===== PITCH CONTROLS ===== */
+.pitch-controls {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 3;
+}
+
+.pitch-btn {
+    border: none;
+    padding: 12px 28px;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+}
+
+.pitch-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pitch-btn-start {
+    background: #2e7d32;
+}
+
+.pitch-btn-start:hover:not(:disabled) {
+    background: #388e3c;
+}
+
+.pitch-btn-stop {
+    background: #c62828;
+}
+
+.pitch-btn-stop:hover:not(:disabled) {
+    background: #d32f2f;
+}
+
+.pitch-btn-mute {
+    background: #455a64;
+}
+
+.pitch-btn-mute:hover:not(:disabled) {
+    background: #546e7a;
+}
+
+/* ===== ERROR MESSAGE ===== */
+.pitch-error {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(198, 40, 40, 0.9);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    z-index: 4;
+    max-width: 80%;
+    text-align: center;
+}

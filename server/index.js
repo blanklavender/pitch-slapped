@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-// Node.js server
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 
 dotenv.config();
@@ -23,6 +22,22 @@ app.get("/scribe-token", async (req, res) => {
   } catch (error) {
     console.error("Token error:", error);
     res.status(500).json({ error: "Failed to get token" });
+  }
+});
+
+app.get("/signed-url", async (req, res) => {
+  try {
+    const agentId = process.env.ELEVENLABS_AGENT_ID;
+    if (!agentId) {
+      return res.status(500).json({ error: "ELEVENLABS_AGENT_ID not set" });
+    }
+    const { signedUrl } = await elevenlabs.conversationalAi.conversations.getSignedUrl({
+      agentId,
+    });
+    res.json({ signedUrl });
+  } catch (error) {
+    console.error("Signed URL error:", error);
+    res.status(500).json({ error: "Failed to get signed URL" });
   }
 });
 

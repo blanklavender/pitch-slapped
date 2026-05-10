@@ -1,13 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { ConversationProvider } from '@elevenlabs/react'
 import './index.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <ConversationProvider>
+        <App />
+      </ConversationProvider>
     </BrowserRouter>
   </StrictMode>,
 )
