@@ -1,0 +1,259 @@
+.report {
+  min-height: 100vh;
+  background: #5a0000;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  overflow-y: auto;
+}
+
+.report::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, #1a0000 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.report-content {
+  position: relative;
+  z-index: 1;
+  width: 90%;
+  max-width: 700px;
+  padding: 48px 0 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.report-content h1 {
+  font-family: 'Mileast', serif;
+  font-size: 3rem;
+  font-weight: normal;
+  color: #fff;
+  text-align: center;
+  margin: 0 0 32px;
+}
+
+/* ===== REPORT CARD ===== */
+.report-card {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 40px;
+}
+
+/* ===== SCORE / PIE SECTION ===== */
+.score-section {
+  margin-bottom: 28px;
+}
+
+.pie-container {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.pie-chart {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pie-center {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #1a0000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pie-score {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pie-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+.pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.legend-score {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: right;
+}
+
+/* ===== FEEDBACK SECTION ===== */
+.feedback-section h2 {
+  color: #fff;
+  font-size: 1.1rem;
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.feedback-section p {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.verdict-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.verdict-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.verdict-value.offer {
+  color: #4caf50;
+}
+
+/* ===== LEADERBOARD ===== */
+.leaderboard-title {
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0 0 16px;
+  align-self: flex-start;
+}
+
+.leaderboard-card {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 36px;
+}
+
+.leaderboard-header {
+  display: flex;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-header span {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.leaderboard-row {
+  display: flex;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-row.you {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lb-rank {
+  width: 40px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.lb-name {
+  flex: 1;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.leaderboard-row.you .lb-name {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.lb-product {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.lb-score {
+  width: 50px;
+  text-align: right;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ===== BACK BUTTON ===== */
+.go-home-btn {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  padding: 14px 40px;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.2s;
+}
+
+.go-home-btn:hover {
+  background: #388e3c;
+}

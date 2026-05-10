@@ -93,7 +93,7 @@ function PitchRoom() {
 
       <div className="judges">
         {judges.map((judge, i) => (
-          <div className="judge-station" key={i}>
+          <div className={`judge-station${i === 0 ? '' : ''}`} key={i}>  {/*Add ' speaking' class to test it*/}
             <img src={spotlightImg} alt="" className="spotlight-img" />
             <div
               className="spotlight-glow"

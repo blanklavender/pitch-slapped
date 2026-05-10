@@ -40,28 +40,31 @@
 
 .enter-section label {
     color: #fff;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
 }
 
-.go-btn {
-    background: #2e7d32;
-    color: #fff;
-    border: none;
-    padding: 12px 32px;
-    font-size: 1.1rem;
-    border-radius: 6px;
+.go-arrow {
+    width: 120px;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    transition: transform 0.3s ease;
+    transform: rotate(10deg);
 }
 
-.go-btn:hover {
-    background: #388e3c;
+.go-arrow:hover {
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) scale(1.1); }
+    25% { transform: translateX(-4px) scale(1.1); }
+    75% { transform: translateX(4px) scale(1.1); }
 }
 
 .deco {
     position: absolute;
     pointer-events: none;
     z-index: 0;
+    animation: float 3s ease-in-out infinite;
 }
 
 .deco-rocket {
@@ -90,4 +93,9 @@
     bottom: 10%;
     right: 12%;
     transform: rotate(-8deg);
+}
+
+@keyframes float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -12px; }
 }
