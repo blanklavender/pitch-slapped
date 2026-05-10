@@ -1,25 +1,34 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranscript } from '../context/TranscriptContext'
 import './PitchReport.css'
 
-const scoreBreakdown = [
-  { label: 'Clarity', score: 22, color: '#4caf50' },
-  { label: 'Persuasion', score: 18, color: '#ff9800' },
-  { label: 'Market Knowledge', score: 25, color: '#2196f3' },
-  { label: 'Confidence', score: 20, color: '#e91e63' },
-  { label: 'Financials', score: 15, color: '#9c27b0' },
+const MOCK_TRANSCRIPT = [
+  { role: "user", text: "Hi everyone, I'm Alex and I'm here to pitch BrewBot — a smart coffee machine that learns your taste preferences over time using AI. We're seeking 200 thousand dollars for 10% equity." },
+  { role: "agent", text: "<James>Interesting concept. How does the AI actually learn? Is it just tracking what buttons I press, or is there something deeper going on?</James>" },
+  { role: "user", text: "Great question James. BrewBot uses a combination of direct feedback — you rate each cup — and passive signals like time of day, weather, and how quickly you finish your drink. Our proprietary algorithm adjusts grind size, water temperature, and brew time." },
+  { role: "agent", text: "<Vidya>I like the tech angle, but coffee machines are a crowded market. What makes you different from a Nespresso with an app?</Vidya>" },
+  { role: "user", text: "Vidya, the key difference is we don't use pods. We work with fresh beans, and our machine grinds and brews. No proprietary pod lock-in. Plus our AI genuinely adapts — Nespresso just gives you preset options." },
+  { role: "agent", text: "<Layla>Talk to me about numbers. What's your current revenue? What's the unit economics look like?</Layla>" },
+  { role: "user", text: "We launched 6 months ago. We've done 450 thousand in revenue. Each unit costs us 180 to manufacture, we sell at 499. Our customer acquisition cost is about 45 dollars through social media and influencer partnerships." },
+  { role: "agent", text: "<James>Those margins are solid. What's your return rate?</James>" },
+  { role: "user", text: "Return rate is 3.2%, which is well below industry average of 8% for kitchen appliances. Our NPS score is 72." },
+  { role: "agent", text: "<Vidya>What's your plan for the 200K? Where does that money go?</Vidya>" },
+  { role: "user", text: "60% goes to inventory for our next production run — we're supply constrained right now. 25% to marketing to scale our influencer program. And 15% to R&D for our mobile app which launches in Q3." },
+  { role: "agent", text: "<Layla>I have concerns about scalability. Manufacturing hardware is capital intensive. How do you plan to scale without burning through cash?</Layla>" },
+  { role: "user", text: "We've partnered with a contract manufacturer in Shenzhen who can scale to 50,000 units per month. We only pay per unit, so there's no fixed overhead increase. We're also exploring a subscription model for premium bean deliveries which would give us recurring revenue." },
+  { role: "agent", text: "<James>I like what I'm hearing. The subscription angle is smart. I'd be interested in making an offer.</James><Vidya>I think the market is tough but you clearly know your numbers. I'm going to pass, but I wish you the best.</Vidya><Layla>I love the recurring revenue angle. I'm in — I'd like to make an offer as well.</Layla>" },
 ]
 
-const totalScore = scoreBreakdown.reduce((sum, s) => sum + s.score, 0)
+const CATEGORY_META = {
+  clarity: { label: 'Clarity', color: '#4caf50' },
+  persuasion: { label: 'Persuasion', color: '#ff9800' },
+  market_knowledge: { label: 'Market Knowledge', color: '#2196f3' },
+  confidence: { label: 'Confidence', color: '#e91e63' },
+  financials: { label: 'Financials', color: '#9c27b0' },
+}
 
-const leaderboard = [
-  { rank: 1, name: 'Arjun Mehta', product: 'SolarSnack', score: 94 },
-  { rank: 2, name: 'Lisa Chang', product: 'PetPulse', score: 89 },
-  { rank: 3, name: 'David Okafor', product: 'BrewBot', score: 85 },
-  { rank: 4, name: 'You', product: 'BrewBot', score: 82 },
-  { rank: 5, name: 'Priya Sharma', product: 'FitPlate', score: 78 },
-]
-
-function buildConicGradient() {
+function buildConicGradient(scoreBreakdown, totalScore) {
   let deg = 0
   const stops = scoreBreakdown.map((s) => {
     const start = deg
@@ -31,6 +40,66 @@ function buildConicGradient() {
 
 function PitchReport() {
   const navigate = useNavigate()
+  const { getTranscript } = useTranscript()
+  const [analysis, setAnalysis] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let transcript = getTranscript()
+    if (!transcript || transcript.length === 0) {
+      transcript = MOCK_TRANSCRIPT
+    }
+
+    fetch('http://localhost:3001/analyze-pitch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to analyze pitch')
+        return res.json()
+      })
+      .then((data) => setAnalysis(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="report">
+        <div className="report-content">
+          <h1>Pitch Report</h1>
+          <div className="report-loading">
+            <div className="loading-spinner" />
+            <p>Analyzing your pitch with AI...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="report">
+        <div className="report-content">
+          <h1>Pitch Report</h1>
+          <p className="report-error">{error}</p>
+          <button className="go-home-btn" onClick={() => navigate('/')}>
+            Back to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const scoreBreakdown = Object.entries(CATEGORY_META).map(([key, meta]) => ({
+    label: meta.label,
+    score: analysis.scores[key] || 0,
+    color: meta.color,
+  }))
+
+  const totalScore = scoreBreakdown.reduce((sum, s) => sum + s.score, 0)
 
   return (
     <div className="report">
@@ -40,7 +109,7 @@ function PitchReport() {
         <div className="report-card">
           <div className="score-section">
             <div className="pie-container">
-              <div className="pie-chart" style={{ background: buildConicGradient() }}>
+              <div className="pie-chart" style={{ background: buildConicGradient(scoreBreakdown, totalScore) }}>
                 <div className="pie-center">
                   <span className="pie-score">{totalScore}</span>
                   <span className="pie-label">/ 100</span>
@@ -60,42 +129,35 @@ function PitchReport() {
 
           <div className="feedback-section">
             <h2>Feedback</h2>
-            <p>
-              Strong opening — you grabbed attention quickly with a relatable problem.
-              Your market sizing was impressive and well-researched. The product demo
-              concept was clear, but you rushed through the revenue model. Slow down
-              when explaining unit economics — the sharks want to see you understand
-              your numbers inside out. Your confidence was solid, but eye contact
-              dropped during tough questions. Overall, a compelling pitch with room
-              to tighten the financials narrative.
-            </p>
+            <p>{analysis.feedback}</p>
             <div className="verdict">
               <span className="verdict-label">Verdict:</span>
-              <span className="verdict-value offer">2 of 3 sharks made an offer</span>
+              <span className="verdict-value offer">{analysis.verdict}</span>
             </div>
           </div>
         </div>
 
-        <h2 className="leaderboard-title">Leaderboard</h2>
-        <div className="leaderboard-card">
-          <div className="leaderboard-header">
-            <span className="lb-rank">#</span>
-            <span className="lb-name">Pitcher</span>
-            <span className="lb-product">Product</span>
-            <span className="lb-score">Score</span>
+        {analysis.strengths && analysis.strengths.length > 0 && (
+          <div className="insights-card">
+            <h2>Strengths</h2>
+            <ul>
+              {analysis.strengths.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
           </div>
-          {leaderboard.map((entry) => (
-            <div
-              className={`leaderboard-row${entry.name === 'You' ? ' you' : ''}`}
-              key={entry.rank}
-            >
-              <span className="lb-rank">{entry.rank}</span>
-              <span className="lb-name">{entry.name}</span>
-              <span className="lb-product">{entry.product}</span>
-              <span className="lb-score">{entry.score}</span>
-            </div>
-          ))}
-        </div>
+        )}
+
+        {analysis.improvements && analysis.improvements.length > 0 && (
+          <div className="insights-card">
+            <h2>Areas to Improve</h2>
+            <ul>
+              {analysis.improvements.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button className="go-home-btn" onClick={() => navigate('/')}>
           Back to Home

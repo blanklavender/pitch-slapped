@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConversation } from '@elevenlabs/react'
+import { useTranscript } from '../context/TranscriptContext'
 import judge1 from '../assets/judge1.png'
 import judge2 from '../assets/judge2.png'
 import judge3 from '../assets/judge3.png'
@@ -91,12 +92,14 @@ function computeSegmentTimings(segments, timeline) {
 
 function PitchRoom() {
   const navigate = useNavigate()
+  const { setTranscript: saveTranscript } = useTranscript()
   const [seconds, setSeconds] = useState(0)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [transcript, setTranscript] = useState([])
   const [errorMessage, setErrorMessage] = useState(null)
   const [currentSpeaker, setCurrentSpeaker] = useState(null)
   const transcriptRef = useRef(null)
+  const transcriptDataRef = useRef([])
   const speakerTimersRef = useRef([])
   const segmentsRef = useRef([])
   const alignmentsRef = useRef([])
@@ -152,6 +155,7 @@ function PitchRoom() {
   const finishSession = async () => {
     if (finishingRef.current) return
     finishingRef.current = true
+    saveTranscript(transcriptDataRef.current)
     try {
       await conversationRef.current?.endSession()
     } catch (error) {
@@ -244,6 +248,7 @@ function PitchRoom() {
   }, [])
 
   useEffect(() => {
+    transcriptDataRef.current = transcript
     if (transcriptRef.current) {
       transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
     }
